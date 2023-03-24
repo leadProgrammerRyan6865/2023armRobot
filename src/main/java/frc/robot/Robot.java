@@ -77,7 +77,7 @@ import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
 
   // Vision init
   PhotonCamera sideCamera = new PhotonCamera("photonvision");
-  boolean targetSeen;
+  boolean targetSeen = false;
 
   // Methods for arm - input in degrees
   public void moveArm(double position) 
@@ -122,7 +122,7 @@ import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
   // Checker to see if desired position is reached (for both hand and arm)
   public boolean handOnTarget(double position)
   {    
-    boolean handOnTarget = ((position*handRatio*(2048/360))-handFx.getSelectedSensorPosition())<1000;
+    boolean handOnTarget = ((position*handRatio*(2048/360))-handFx.getSelectedSensorPosition())<100;
     return handOnTarget;
   }
 
@@ -176,6 +176,18 @@ import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
       {
         moveHand(HAND_RETRACTED_POSITION);
       }
+    }
+  }
+
+  public void placeAt(double hand_position)
+  {
+    if (!armIn())
+    {
+      retractArm();
+    }
+    else
+    {
+      moveHand(hand_position);
     }
   }
 /* Main arm control ahead 
@@ -246,8 +258,8 @@ import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
   @Override
   public void robotInit() 
   {
-    m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
-    m_chooser.addOption("My Auto", kCustomAuto);
+    m_chooser.setDefaultOption("Full Auto", kDefaultAuto);
+    m_chooser.addOption("Quick", kCustomAuto);
     SmartDashboard.putData("Auto choices", m_chooser);
 
 
@@ -259,7 +271,7 @@ import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
     //navx.reset();
 
     // Sensor stuff
-    armFx.setSelectedSensorPosition(-105*handRatio*(2048/360));
+    armFx.setSelectedSensorPosition(-95*handRatio*(2048/360));
     handFx.setSelectedSensorPosition(handRatio*(2048/360));
 
 
@@ -271,7 +283,7 @@ import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
     armFx.config_kP(0, 0.2);
     armFx.config_kI(0, 0);
     armFx.config_kD(0, 0);
-    armFx.configClosedLoopPeakOutput(0, 0.2);
+    armFx.configClosedLoopPeakOutput(0, 0.3);
     armFx.configAllowableClosedloopError(0, 0);
 
     handFx.configSelectedFeedbackSensor(FeedbackDevice.IntegratedSensor, 0, 0);
@@ -283,7 +295,6 @@ import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
     handFx.config_kD(0, 0);
     handFx.configClosedLoopPeakOutput(0, 0.2);
     handFx.configAllowableClosedloopError(0, 0);
-
   }
   @Override
   public void autonomousInit(){}
@@ -308,7 +319,7 @@ import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
           {
             diffDrive.arcadeDrive(0.6, 0);
           }
-        else
+        else if (autoTimer.get() > 5)
           {
             diffDrive.arcadeDrive(0, 0);
           }
@@ -366,14 +377,17 @@ import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
     else if (xBox2.getBButton())
     {
       armPos = 2;
+      placeAt(-30);
     }
     else if (xBox2.getXButton())
     {
       armPos = 3;
+      placeAt(-70);
     }
     else if (xBox2.getRightBumper()) 
     {
       armPos = 4;
+      placeAt(-100);
     }
     else
     {
